@@ -1,0 +1,19 @@
+# Dependencias del Backend - Django
+# Instalar con: pip install -r requirements.txt
+
+# Framework principal
+Django==4.2
+
+# API REST
+djangorestframework==3.16.1
+
+# Permitir peticiones CORS desde el frontend
+django-cors-headers==4.9.0
+
+# Conector MySQL
+mysqlclient==2.2.8
+
+# Dependencias de Django
+asgiref==3.11.0
+sqlparse==0.5.5
+tzdata==2025.3
