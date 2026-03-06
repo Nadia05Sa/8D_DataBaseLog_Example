@@ -1,4 +1,6 @@
 from django.db import models
+from auditlog.registry import auditlog
+from django.contrib.auth.models import User
 
 class Curso(models.Model):
     nombre = models.CharField(max_length=50)
@@ -29,3 +31,30 @@ class Curso(models.Model):
         return f"{self.nombre} ({self.codigo})"
 
 
+auditlog.register(Curso)
+
+
+class Bitacora(models.Model):
+    usuario = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    accion = models.CharField(max_length=50)
+    modelo = models.CharField(max_length=100)
+    objeto_id = models.IntegerField()
+    objeto_repr = models.CharField(max_length=150, blank=True, default='')
+    descripcion = models.TextField()
+    fecha = models.DateTimeField(auto_now_add=True)
+    
+    # Campos técnicos adicionales
+    cambios_json = models.JSONField(blank=True, null=True, default=dict)
+    ip_usuario = models.GenericIPAddressField(blank=True, null=True)
+    user_agent = models.TextField(blank=True, default='')
+    content_type = models.CharField(max_length=100, blank=True, default='')
+    datos_antes = models.JSONField(blank=True, null=True, default=dict)
+    datos_despues = models.JSONField(blank=True, null=True, default=dict)
+
+    class Meta:
+        ordering = ['-fecha']
+        verbose_name = 'Registro de Bitácora'
+        verbose_name_plural = 'Registros de Bitácora'
+
+    def __str__(self):
+        return f"{self.usuario} - {self.accion} - {self.modelo}"

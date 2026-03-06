@@ -26,11 +26,20 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     
+    # ========== LIBRERÍAS DE TERCEROS ==========
+    # django-auditlog: Sistema de auditoría automática
+    # Registra automáticamente todos los cambios (CREATE, UPDATE, DELETE) en los modelos
+    # Los logs se almacenan en la tabla 'auditlog_logentry' y se pueden ver en /admin/
+    # Documentación: https://django-auditlog.readthedocs.io/
+    'auditlog',
+    
     # django-cors-headers: Permite peticiones desde otros dominios (React en puerto 5173)
     'corsheaders',
     
     # djangorestframework: Framework para crear APIs REST
     'rest_framework',
+    
+    # ========== APLICACIONES DEL PROYECTO ==========
     'curso',  # App principal con el modelo Curso
 ]
 
@@ -47,6 +56,14 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    
+    # AuditLog Middleware: Captura automáticamente el usuario que realiza cada cambio
+    # IMPORTANTE: Debe ir DESPUÉS de AuthenticationMiddleware para tener acceso al usuario
+    # Sin este middleware, los logs de auditoría no registrarán quién hizo el cambio
+    'auditlog.middleware.AuditlogMiddleware',
+    
+    # Middleware personalizado para capturar IP y User-Agent en la bitácora
+    'curso.middleware.RequestMiddleware',
 ]
 
 ROOT_URLCONF = 'Servidor_Curso.urls'

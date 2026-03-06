@@ -1,10 +1,11 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import CursoViewSet # <--- Importamos el ViewSet de nuestro curso
+from .views import BitacoraViewSet, CursoViewSet
 
 # Creamos el router y registramos nuestro ViewSet
 router = DefaultRouter()
 router.register(r'cursos', CursoViewSet)
+router.register(r'bitacora', BitacoraViewSet) # <-- Registramos el ViewSet de la bitácora
 
 
 

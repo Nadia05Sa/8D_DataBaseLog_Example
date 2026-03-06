@@ -7,6 +7,9 @@ Django==4.2
 # API REST
 djangorestframework==3.16.1
 
+# Auditoría automática de modelos
+django-auditlog==3.4.1
+
 # Permitir peticiones CORS desde el frontend
 django-cors-headers==4.9.0
 
@@ -17,3 +20,4 @@ mysqlclient==2.2.8
 asgiref==3.11.0
 sqlparse==0.5.5
 tzdata==2025.3
+
