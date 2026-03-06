@@ -1,6 +1,8 @@
-# Sistema de Cursos
+# Sistema de Cursos con Auditoria
 
-Sistema de cursos academicos desarrollado con Django REST Framework (Backend) y React + Vite (Frontend).
+Sistema de cursos academicos con registro de auditoria completo, desarrollado con **Django REST Framework** (Backend) y **React + Vite** (Frontend).
+
+---
 
 ## Estructura del Proyecto
 
@@ -72,41 +74,197 @@ npm run dev
 
 ---
 
-## Creacion del Proyecto Django (Backend)
+## Parte 1: Creacion del Proyecto Django (Backend)
 
-### Backend (Django)
+### 1.1 Crear el proyecto y la aplicacion
 
 ```bash
+# Crear el proyecto Django
+   py -m django startproject Servidor_Curso
+
+# Entrar al directorio del proyecto
 cd Servidor_Curso
 
-# Crear entorno virtual (opcional pero recomendado)
-python -m venv venv
-venv\Scripts\activate  # Windows
-# source venv/bin/activate  # Linux/Mac
-
-# Instalar dependencias
-pip install -r requirements.txt
-
-# Aplicar migraciones
-python manage.py migrate
-
-# Iniciar servidor
-python manage.py runserver
+# Crear la aplicacion 'curso'
+   py manage.py startapp curso
 ```
 
-### Frontend (React)
+### 1.2 Instalar dependencias
 
 ```bash
+pip install djangorestframework
+pip install django-cors-headers
+pip install django-auditlog
+pip install mysqlclient
+```
+
+### 1.3 Configurar settings.py
+
+```python
+INSTALLED_APPS = [
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+    
+    # Librerias de terceros
+    'auditlog',           # Sistema de auditoria automatica
+    'corsheaders',        # Permite peticiones desde React
+    'rest_framework',     # Framework para APIs REST
+    
+    # Aplicaciones del proyecto
+    'curso',
+]
+
+MIDDLEWARE = [
+    'django.middleware.security.SecurityMiddleware',
+    'corsheaders.middleware.CorsMiddleware',  # CORS - debe ir arriba
+    'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.common.CommonMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'auditlog.middleware.AuditlogMiddleware',  # Captura el usuario actual
+    'curso.middleware.RequestMiddleware',       # Captura IP y User-Agent
+]
+
+# Configurar CORS para permitir peticiones desde el frontend
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
+
+# Configurar base de datos MySQL
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'curso',
+        'USER': 'user_curso',
+        'PASSWORD': 'contrasena123',
+        'HOST': 'localhost',
+        'PORT': '3306',
+    }
+}
+```
+
+### 1.4 Crear el modelo Curso (models.py)
+
+```python
+from django.db import models
+from auditlog.registry import auditlog
+from django.contrib.auth.models import User
+
+class Curso(models.Model):
+    nombre = models.CharField(max_length=50)
+    codigo = models.CharField(max_length=20, unique=True)
+    creditos = models.IntegerField()
+    profesor = models.CharField(max_length=100)
+    cupo_maximo = models.IntegerField()
+    estado = models.CharField(
+        max_length=10,
+        choices=[('ABIERTO', 'Abierto'), ('CERRADO', 'Cerrado')],
+        default='ABIERTO',
+    )
+
+    def __str__(self):
+        return f"{self.nombre} ({self.codigo})"
+
+# Registrar el modelo para auditoria automatica con django-auditlog
+auditlog.register(Curso)
+
+
+class Bitacora(models.Model):
+    usuario = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    accion = models.CharField(max_length=50)
+    modelo = models.CharField(max_length=100)
+    objeto_id = models.IntegerField()
+    objeto_repr = models.CharField(max_length=150, blank=True, default='')
+    descripcion = models.TextField()
+    fecha = models.DateTimeField(auto_now_add=True)
+    
+    # Campos tecnicos adicionales
+    cambios_json = models.JSONField(blank=True, null=True, default=dict)
+    ip_usuario = models.GenericIPAddressField(blank=True, null=True)
+    user_agent = models.TextField(blank=True, default='')
+    content_type = models.CharField(max_length=100, blank=True, default='')
+    datos_antes = models.JSONField(blank=True, null=True, default=dict)
+    datos_despues = models.JSONField(blank=True, null=True, default=dict)
+
+    class Meta:
+        ordering = ['-fecha']
+```
+
+### 1.5 Aplicar migraciones
+
+```bash
+py manage.py makemigrations
+py manage.py migrate
+```
+
+---
+
+## Parte 2: Creacion del Proyecto React (Frontend)
+
+### 2.1 Crear el proyecto con Vite
+
+```bash
+# Crear proyecto React con Vite
+npm create vite@latest Cliente_Curso -- --template react
+
+# Entrar al directorio
 cd Cliente_Curso
 
 # Instalar dependencias
 npm install
-
-# Iniciar servidor de desarrollo
-npm run dev
 ```
 
-## Implementacion de django-auditlog
+### 2.2 Instalar dependencias adicionales
+
+```bash
+npm install axios           # Cliente HTTP para consumir la API
+npm install bootstrap       # Framework CSS
+npm install react-hot-toast # Notificaciones toast
+```
+
+### 2.3 Crear el servicio API (src/service/api.js)
+
+```javascript
+import axios from 'axios';
+
+const BASE_URL = 'http://localhost:8000/api/';
+
+// LISTAR cursos
+export const read = () => {
+    return axios.get(`${BASE_URL}cursos/`);
+};
+
+// CREAR curso
+export const create = (data) => {
+    return axios.post(`${BASE_URL}cursos/`, data);
+};
+
+// ACTUALIZAR curso
+export const update = (id, data) => {
+    return axios.put(`${BASE_URL}cursos/${id}/`, data);
+};
+
+// ELIMINAR curso
+export const deleteM = (id) => {
+    return axios.delete(`${BASE_URL}cursos/${id}/`);
+};
+
+// OBTENER registros de auditoria (bitacora)
+export const readBitacora = () => {
+    return axios.get(`${BASE_URL}bitacora/`);
+};
+```
+
+---
+
+## Parte 3: Implementacion de django-auditlog
 
 **django-auditlog** es una libreria que registra automaticamente todos los cambios (CREATE, UPDATE, DELETE) en los modelos de Django.
 
@@ -165,7 +323,7 @@ Los logs se pueden ver automaticamente en `/admin/auditlog/logentry/`
 
 ---
 
-## Implementacion de Bitacora Personalizada
+## Parte 4: Implementacion de Bitacora Personalizada
 
 Ademas de django-auditlog, se implemento una **bitacora personalizada** que se expone a traves de la API REST para mostrar en el frontend con datos tecnicos detallados.
 
@@ -396,7 +554,7 @@ urlpatterns = [
 
 ---
 
-## Comparacion auditlog vs Bitacora Personalizada
+## Parte 5: Comparacion auditlog vs Bitacora Personalizada
 
 | Caracteristica      | django-auditlog            | Bitacora Personalizada |
 |---------------------|----------------------------|------------------------|
@@ -416,9 +574,15 @@ urlpatterns = [
 
 ---
 
-## Ejecucion del Proyecto
+## Parte 6: Ejecucion del Proyecto
 
 ### Backend (Django)
+
+```bash
+cd Servidor_Curso
+py manage.py runserver
+```
+El servidor estara disponible en: `http://localhost:8000`
 
 ### Frontend (React)
 
@@ -493,16 +657,28 @@ El modal de detalle de auditoria muestra:
 
 ## Archivos de Dependencias
 
-### Backend
-- Python 3.x
-- Django 4.2
-- Django REST Framework 3.16.1
-- django-cors-headers 4.9.0
-- MySQL (mysqlclient 2.2.8)
+### Backend (requirements.txt)
+```
+Django==4.2
+djangorestframework==3.16.1
+django-auditlog==3.4.1
+django-cors-headers==4.9.0
+mysqlclient==2.2.8
+```
 
-### Frontend
-- React 19
-- Vite 5
-- Bootstrap 5
-- Axios
-- react-hot-toast
+### Frontend (package.json)
+```json
+{
+  "dependencies": {
+    "axios": "^1.13.6",
+    "bootstrap": "^5.3.8",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-hot-toast": "^2.6.0"
+  }
+}
+```
+
+---
+
+Desarrollado para la materia de Base de Datos - 2026
