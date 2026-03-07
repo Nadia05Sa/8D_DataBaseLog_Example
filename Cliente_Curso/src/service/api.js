@@ -27,7 +27,7 @@ export const update = (id, data) => {
 
 // 4. ELIMINAR (DELETE)
 export const deleteM = (id) => {
-    return axios.delete(`${BASE_URL}/${id}/`);
+    return axios.delete(`${BASE_URL}cursos/${id}/`);
 };
 
 // 5. OBTENER DETALLES (GET)
